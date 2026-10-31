@@ -53,4 +53,4 @@ def add_percentiles(df, exclude=None, lower_is_better=None, min_sample_col=None,
 
         out.loc[valid, f"{col}_percentile"] = ranks.clip(0, 100).round(1)
 
-    return out
+    return out 
