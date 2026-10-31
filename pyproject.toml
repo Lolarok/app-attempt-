@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "euro-analytics-lab"
+version = "0.1.0"
+description = "MVP analytics dashboard for EuroLeague and EuroCup data."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "streamlit>=1.40",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "pytest>=8.0",
+    "neuroleague-api>=0.1.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
