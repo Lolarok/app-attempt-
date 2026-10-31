@@ -1,1 +1,56 @@
-1
+import numpy as np
+import pandas as pd
+
+
+def _num(df, col):
+    if col not in df.columns:
+        return pd.Series(np.nan, index=df.index, dtype="float64")
+    return pd.to_numeric(df[col], errors="coerce")
+
+
+def add_player_metrics(df):
+    out = df.copy()
+    fgm, fga, fg3m = _num(out, "fgm"), _num(out, "fga"), _num(out, "fg3m")
+    fta, pts = _num(out, "fta"), _num(out, "points")
+    out["efg_pct"] = np.where(fga > 0, (fgm + 0.5 * fg3m) / fga, np.nan)
+    out["ts_pct"] = np.where((fga + 0.44 * fta) > 0, pts / (2 * (fga + 0.44 * fta)), np.nan)
+    ast, tov = _num(out, "assists"), _num(out, "turnovers")
+    out["ast_to"] = np.where(tov > 0, ast / tov, np.nan)
+    return out
+
+
+def add_team_metrics(df):
+    out = df.copy()
+    poss = _num(out, "possessions")
+    pf, pa = _num(out, "points_for"), _num(out, "points_against")
+    out["offensive_rating"] = np.where(poss > 0, 100 * pf / poss, np.nan)
+    out["defensive_rating"] = np.where(poss > 0, 100 * pa / poss, np.nan)
+    out["net_rating"] = out["offensive_rating"] - out["defensive_rating"]
+    return out
+
+
+def add_percentiles(df, exclude=None, lower_is_better=None, min_sample_col=None, min_sample=None):
+    out = df.copy()
+    excluded = set(exclude or [])
+    lower = set(lower_is_better or [])
+
+    for col in list(out.select_dtypes(include="number").columns):
+        if col in excluded or col.endswith("_percentile") or col == min_sample_col:
+            continue
+
+        vals = pd.to_numeric(out[col], errors="coerce")
+        valid = vals.notna()
+        if min_sample_col and min_sample is not None:
+            valid &= pd.to_numeric(out[min_sample_col], errors="coerce") >= min_sample
+
+        out[f"{col}_percentile"] = np.nan
+        if not valid.any():
+            continue
+
+        ranks = vals[valid].rank(method="average", pct=True) * 100
+        if col in lower:
+            ranks = 100 - ranks
+
+        out.loc[valid, f"{col}_percentile"] = ranks.clip(0, 100).round(1)
+
+    return out
